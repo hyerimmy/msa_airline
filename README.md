@@ -9,7 +9,7 @@
 ### 1. 이벤트 스토밍
 #### 시나리오
 #### 이벤트 스토밍 결과
-![image](https://github.com/user-attachments/assets/57e27c1b-6021-40f3-8055-d1b99cb7526b)
+![image](https://github.com/user-attachments/assets/2c244fbb-44b1-4cd6-b7f5-7378304c1774)
 
 #### 시나리오 검증
 
