@@ -47,25 +47,10 @@ public class Reservation {
 
     //<<< Clean Arch / Port Method
     public static void updateStatus(SeatsSoldOut seatsSoldOut) {
-        //implement business logic here:
-
-        /** Example 1:  new item 
-        Reservation reservation = new Reservation();
-        repository().save(reservation);
-
-        */
-
-        /** Example 2:  finding and process
-        
-        repository().findById(seatsSoldOut.get???()).ifPresent(reservation->{
-            
-            reservation // do something
+        repository().findById(seatsSoldOut.getReservationId()).ifPresent(reservation->{
+            reservation.setStatus("CANCELED");
             repository().save(reservation);
-
-
-         });
-        */
-
+        });
     }
     //>>> Clean Arch / Port Method
 
