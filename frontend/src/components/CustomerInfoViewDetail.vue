@@ -13,7 +13,7 @@
                 <Number label="FlightCount" v-model="item.flightCount" :editMode="editMode" @change="change" />
             </div>
             <div>
-                <Number label="RecentReserveDate" v-model="item.recentReserveDate" :editMode="editMode" @change="change" />
+                <Date label="RecentReserveDate" v-model="item.recentReserveDate" :editMode="editMode" @change="change" />
             </div>
         </v-card-text>
     </v-card>

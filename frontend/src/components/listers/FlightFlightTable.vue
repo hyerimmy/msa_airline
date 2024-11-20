@@ -90,7 +90,7 @@
             this.newValue = {
                 'remainingSeatsCount': 0,
                 'flightCode': '',
-                'takeoffDate': '2024-11-20',
+                'takeoffDate': '2024-11-21',
                 'cost': 0,
             }
         },

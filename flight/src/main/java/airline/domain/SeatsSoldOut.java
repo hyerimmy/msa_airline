@@ -16,6 +16,7 @@ public class SeatsSoldOut extends AbstractEvent {
     private String flightCode;
     private Date takeoffDate;
     private Long cost;
+    private Long reservationId;
 
     public SeatsSoldOut(Flight aggregate) {
         super(aggregate);
