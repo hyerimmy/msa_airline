@@ -1,5 +1,18 @@
-# 
+# ✈️ Airline Service (항공사 예약 시스템)
+> 사내 교육 Cloud Native 개발자 코스 Final Project
 
+## 👩🏻‍🎨 IaaS (아키텍처)
+
+## 👷🏻 Biz (모델링)
+### 1. 시나리오
+### 2. 이벤트 스토밍 결과
+### 3. 시나리오 검증
+
+## 🧑🏻‍💻 Dev (MSA 개발)
+
+## 🤵🏻‍♂️ Ops/PaaS (운영)
+
+<!-- 
 ## Model
 www.msaez.io/#/70644449/storming/airline
 
@@ -88,4 +101,4 @@ sudo ./aws/install
 curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
 sudo mv /tmp/eksctl /usr/local/bin
 ```
-
+ -->
