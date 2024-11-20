@@ -1,16 +1,30 @@
 # ✈️ Airline Service (항공사 예약 시스템)
 > 사내 교육 Cloud Native 개발자 코스 Final Project
 
-## 👩🏻‍🎨 IaaS (아키텍처)
+## 👩🏻‍🎨 [IaaS] 아키텍처
+### 1. 클라우드 아키텍처 구성
+#### MSA 아키텍처 구성도
 
-## 👷🏻 Biz (모델링)
-### 1. 시나리오
-### 2. 이벤트 스토밍 결과
-### 3. 시나리오 검증
+## 👷🏻 [Biz] 모델링
+### 1. 이벤트 스토밍
+#### 시나리오
+#### 이벤트 스토밍 결과
+![image](https://github.com/user-attachments/assets/57e27c1b-6021-40f3-8055-d1b99cb7526b)
 
-## 🧑🏻‍💻 Dev (MSA 개발)
+#### 시나리오 검증
 
-## 🤵🏻‍♂️ Ops/PaaS (운영)
+## 🧑🏻‍💻 [Dev] MSA 개발
+### 1. 분산 트랜잭션 `Saga` & 보상처리 `Compensation`
+### 2. 단일 진입점 `Gateway`
+### 3. 분산 데이터 프로젝션 `CQRS`
+
+## 🤵🏻‍♂️ [Ops/PaaS] 운영
+### 1. 클라우드 배포 `HPA`
+### 2. 컨테이너로부터 환경 분리 `ConfigMap`
+### 3. 클라우드 스토리지 활용 PVC
+### 4. 셀프힐링/무정지배포 `Liveness/Rediness Probe`
+### 5. 서비스 메쉬 응용 `Mesh`
+### 6. 통합 모니터링 `Loggeration/Monitoring`
 
 <!-- 
 ## Model
