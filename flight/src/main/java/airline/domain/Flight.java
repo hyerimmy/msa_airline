@@ -58,33 +58,19 @@ public class Flight {
     public static void decreaseRemainingSeats(
         ReservationPlaced reservationPlaced
     ) {
-        //implement business logic here:
-
-        /** Example 1:  new item 
-        Flight flight = new Flight();
-        repository().save(flight);
-
-        RemainingSeatsDecreased remainingSeatsDecreased = new RemainingSeatsDecreased(flight);
-        remainingSeatsDecreased.publishAfterCommit();
-        SeatsSoldOut seatsSoldOut = new SeatsSoldOut(flight);
-        seatsSoldOut.publishAfterCommit();
-        */
-
-        /** Example 2:  finding and process
-        
-        repository().findById(reservationPlaced.get???()).ifPresent(flight->{
-            
-            flight // do something
-            repository().save(flight);
-
-            RemainingSeatsDecreased remainingSeatsDecreased = new RemainingSeatsDecreased(flight);
-            remainingSeatsDecreased.publishAfterCommit();
-            SeatsSoldOut seatsSoldOut = new SeatsSoldOut(flight);
-            seatsSoldOut.publishAfterCommit();
-
-         });
-        */
-
+        repository().findById(reservationPlaced.getFlightId()).ifPresent(flight->{
+            if(flight.getRemainingSeatsCount() >= reservationPlaced.getSeatQty()){
+                flight.setRemainingSeatsCount(flight.getRemainingSeatsCount() - reservationPlaced.getSeatQty()); 
+                repository().save(flight);
+                
+                RemainingSeatsDecreased remainingSeatDecreased = new RemainingSeatsDecreased(flight);
+                remainingSeatDecreased.publishAfterCommit();
+            }else{
+                SeatsSoldOut seatsSoldOut = new SeatsSoldOut(flight);
+                seatsSoldOut.setReservationId(reservationPlaced.getId());
+                seatsSoldOut.publishAfterCommit();
+            }
+        });
     }
 
     //>>> Clean Arch / Port Method
