@@ -23,35 +23,26 @@ public class CustomerInfoViewHandler {
     ) {
         try {
             if (!reservationPlaced.validate()) return;
-
-            // view 객체 생성
-            CustomerInfo customerInfo = new CustomerInfo();
-            // view 객체에 이벤트의 Value 를 set 함
-            customerInfo.setCustomerId(reservationPlaced.getCustomerId());
-            customerInfo.setFlightCount(1L);
-            customerInfo.setRecentReserveDate(reservationPlaced.getReserveDate());
-            // view 레파지 토리에 save
-            customerInfoRepository.save(customerInfo);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @StreamListener(KafkaProcessor.INPUT)
-    public void whenReservationPlaced_then_UPDATE_1(
-        @Payload ReservationPlaced reservationPlaced
-    ) {
-        try {
-            if (!reservationPlaced.validate()) return;
+            
             // view 객체 조회
             Optional<CustomerInfo> customerInfoOptional = customerInfoRepository.findById(
                 reservationPlaced.getCustomerId()
             );
 
-            if (customerInfoOptional.isPresent()) {
+            // 기존 customerId의 대시보드 데이터가 존재하지 않는다면 생성, 존재한다면 수정
+            if (customerInfoOptional.isPresent()) { 
                 CustomerInfo customerInfo = customerInfoOptional.get();
                 // view 객체에 이벤트의 eventDirectValue 를 set 함
                 customerInfo.setFlightCount(customerInfo.getFlightCount() + 1);
+                customerInfo.setRecentReserveDate(reservationPlaced.getReserveDate());
+                // view 레파지 토리에 save
+                customerInfoRepository.save(customerInfo);
+            } else {
+                // view 객체 생성
+                CustomerInfo customerInfo = new CustomerInfo();
+                // view 객체에 이벤트의 Value 를 set 함
+                customerInfo.setCustomerId(reservationPlaced.getCustomerId());
+                customerInfo.setFlightCount(1L);
                 customerInfo.setRecentReserveDate(reservationPlaced.getReserveDate());
                 // view 레파지 토리에 save
                 customerInfoRepository.save(customerInfo);
