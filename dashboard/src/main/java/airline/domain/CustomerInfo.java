@@ -17,5 +17,5 @@ public class CustomerInfo {
     private Long customerId;
 
     private Long flightCount;
-    private Long recentReserveDate;
+    private Date recentReserveDate;
 }

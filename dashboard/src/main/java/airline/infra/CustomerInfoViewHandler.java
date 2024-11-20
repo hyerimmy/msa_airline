@@ -28,10 +28,8 @@ public class CustomerInfoViewHandler {
             CustomerInfo customerInfo = new CustomerInfo();
             // view 객체에 이벤트의 Value 를 set 함
             customerInfo.setCustomerId(reservationPlaced.getCustomerId());
-            customerInfo.setFlightCount(1);
-            customerInfo.setRecentReserveDate(
-                Long.valueOf(reservationPlaced.getReserveDate())
-            );
+            customerInfo.setFlightCount(1L);
+            customerInfo.setRecentReserveDate(reservationPlaced.getReserveDate());
             // view 레파지 토리에 save
             customerInfoRepository.save(customerInfo);
         } catch (Exception e) {
@@ -46,7 +44,7 @@ public class CustomerInfoViewHandler {
         try {
             if (!reservationPlaced.validate()) return;
             // view 객체 조회
-            Optional<CustomerInfo> customerInfoOptional = customerInfoRepository.findByCustomerId(
+            Optional<CustomerInfo> customerInfoOptional = customerInfoRepository.findById(
                 reservationPlaced.getCustomerId()
             );
 
@@ -54,9 +52,7 @@ public class CustomerInfoViewHandler {
                 CustomerInfo customerInfo = customerInfoOptional.get();
                 // view 객체에 이벤트의 eventDirectValue 를 set 함
                 customerInfo.setFlightCount(customerInfo.getFlightCount() + 1);
-                customerInfo.setRecentReserveDate(
-                    Long.valueOf(reservationPlaced.getReserveDate())
-                );
+                customerInfo.setRecentReserveDate(reservationPlaced.getReserveDate());
                 // view 레파지 토리에 save
                 customerInfoRepository.save(customerInfo);
             }
@@ -72,7 +68,7 @@ public class CustomerInfoViewHandler {
         try {
             if (!reservationCanceled.validate()) return;
             // view 객체 조회
-            Optional<CustomerInfo> customerInfoOptional = customerInfoRepository.findByCustomerId(
+            Optional<CustomerInfo> customerInfoOptional = customerInfoRepository.findById(
                 reservationCanceled.getCustomerId()
             );
 
