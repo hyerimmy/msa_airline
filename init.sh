@@ -10,6 +10,10 @@ sudo curl -SL https://github.com/docker/compose/releases/download/v2.30.3/docker
 # azure cli
 brew install azure-cli
 
+# jenkins
+brew install jenkins-lts
+brew services restart jenkins-lts
+
 # kafka 를 docker를 통하여 실행
 cd infra
 docker-compose up
