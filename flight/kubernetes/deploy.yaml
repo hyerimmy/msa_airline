@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: payment
+  name: flight
   labels:
-    app: payment
+    app: flight
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: payment
+      app: flight
   template:
     metadata:
       labels:
-        app: payment
+        app: flight
     spec:
       containers:
-        - name: payment
-          image: "username/payment:latest"
+        - name: flight
+          image: "user16.azurecr.io/flight:latest"
           ports:
             - containerPort: 8080
           readinessProbe:
