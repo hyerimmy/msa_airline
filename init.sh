@@ -5,7 +5,9 @@ brew install mvn
 pip install httpie
 
 # docker
-sudo curl -SL https://github.com/docker/compose/releases/download/v2.30.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+brew install cask docker
+brew install cask docker-compose
+# + docker desktop 실행
 
 # azure cli
 brew install azure-cli
