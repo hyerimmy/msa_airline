@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: flight
-          image: "user16.azurecr.io/flight:latest"
+          image: user16.azurecr.io/flight:latest
           ports:
             - containerPort: 8080
           readinessProbe:
