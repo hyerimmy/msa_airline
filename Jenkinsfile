@@ -17,6 +17,16 @@ pipeline {
     }
  
     stages {
+        stage('Go To Project Folder') {
+            steps {
+                script {
+                    sh """
+                    cd flight
+                    """
+                }
+            }
+        }
+        
         stage('Clone Repository') {
             steps {
                 checkout scm
