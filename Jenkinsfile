@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        SERVICES = 'dashboard,flight,payment,reservation'
         REGISTRY = 'user16.azurecr.io'
         IMAGE_NAME = 'airline'
         AKS_CLUSTER = 'user16-aks'
@@ -22,81 +23,65 @@ pipeline {
                 checkout scm
             }
         }
-        
-        stage('Change Root Folder') {
+
+        stage('Build and Deploy Services') {
             steps {
                 script {
-                    sh """
-                    cd flight
-                    """
-                }
-            }
-        }
-        
-        stage('Maven Build') {
-            steps {
-                withMaven(maven: 'Maven') {
-                    sh 'mvn package -DskipTests'
-                }
-            }
-        }
-        
-        stage('Docker Build') {
-            steps {
-                script {
-                    image = docker.build("${REGISTRY}/${IMAGE_NAME}:v${env.BUILD_NUMBER}")
-                }
-            }
-        }
-        
-        stage('Push to ACR') {
-            steps {
-                script {
-                    sh "az acr login --name ${REGISTRY.split('\\.')[0]}"
-                    sh "docker push ${REGISTRY}/${IMAGE_NAME}:v${env.BUILD_NUMBER}"
-                }
-            }
-        }
-        
-        stage('CleanUp Images') {
-            steps {
-                sh """
-                docker rmi ${REGISTRY}/${IMAGE_NAME}:v$BUILD_NUMBER
-                """
-            }
-        }
-        
-        stage('Update deploy.yaml') {
-            steps {
-                script {
-                    sh """
-                    sed 's/latest/v${env.BUILD_ID}/g' kubernetes/deploy.yaml > updated_deploy.yaml
-                    mv updated_deploy.yaml kubernetes/deploy.yaml
-                    cat kubernetes/deploy.yaml
-                    """
-                }
-            }
-        }
-        
-        stage('Commit and Push to GitHub') {
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: GITHUB_CREDENTIALS_ID, usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                        sh """
-                            git config --global user.email "your-email@example.com"
-                            git config --global user.name "Jenkins CI"
-                            git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@${GITHUB_REPO} repo
-                            cp kubernetes/deploy.yaml repo/kubernetes/deploy.yaml
-                            cd repo
-                            git add kubernetes/deploy.yaml
-                            git commit -m "Update deploy.yaml with build ${env.BUILD_NUMBER}"
-                            git push origin ${GITHUB_BRANCH}
-                            cd ..
-                            rm -rf repo
-                        """
+                    def services = SERVICES.tokenize(',') // Use tokenize to split the string into a list
+                    for (int i = 0; i < services.size(); i++) {
+                        def service = services[i] // Define service as a def to ensure serialization
+                        dir(service) {
+                            stage("Maven Build - ${service}") {
+                                withMaven(maven: 'Maven') {
+                                    sh 'mvn package -DskipTests'
+                                }
+                            }
+
+                            stage("Docker Build - ${service}") {
+                                def image = docker.build("${REGISTRY}/${service}:v${env.BUILD_NUMBER}")
+                            }
+
+                            stage('Azure Login') {
+                                withCredentials([usernamePassword(credentialsId: env.AZURE_CREDENTIALS_ID, usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
+                                    sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant ${TENANT_ID}'
+                                }
+                            }
+
+                            stage("Push to ACR - ${service}") {
+                                sh "az acr login --name ${REGISTRY.split('\\.')[0]}"
+                                sh "docker push ${REGISTRY}/${service}:v${env.BUILD_NUMBER}"
+                            }
+
+                            stage("Deploy to AKS - ${service}") {
+                                
+                                sh "az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${AKS_CLUSTER}"
+
+                                sh 'pwd'
+                                
+                                sh """
+                                sed 's/latest/v${env.BUILD_ID}/g' kubernetes/deployment.yaml > output.yaml
+                                cat output.yaml
+                                kubectl apply -f output.yaml
+                                kubectl apply -f kubernetes/service.yaml
+                                rm output.yaml
+                                """
+                            }
+                        }
                     }
                 }
             }
-        } 
+        }
+
+        stage('CleanUp Images') {
+            steps {
+                script {
+                    def services = SERVICES.tokenize(',') 
+                    for (int i = 0; i < services.size(); i++) {
+                        def service = services[i] 
+                        sh "docker rmi ${REGISTRY}/${service}:v${env.BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
     }
 }
