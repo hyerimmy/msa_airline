@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SERVICES = 'deploy,dashboard,flight,payment,reservation'
+        SERVICES = 'gateway,dashboard,flight,payment,reservation'
         REGISTRY = 'user16.azurecr.io'
         IMAGE_NAME = 'airline'
         AKS_CLUSTER = 'user16-aks'
