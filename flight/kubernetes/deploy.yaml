@@ -19,6 +19,14 @@ spec:
           image: user16.azurecr.io/flight:latest
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/flights'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
           env:
             - name: FLIGHT_LOG_LEVEL
               valueFrom:
