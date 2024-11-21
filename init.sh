@@ -1,22 +1,19 @@
-sudo apt-get update
-sudo apt-get install net-tools
-sudo apt install iputils-ping
+# mvn
+brew install mvn
+
+# httpie
 pip install httpie
 
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+# docker
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.30.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
 
-curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "../awscliv2.zip"
-unzip ../awscliv2.zip -d ../
-sudo .././aws/install
+# azure cli
+brew install azure-cli
 
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-sudo mv /tmp/eksctl /usr/local/bin
-
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
-. ~/.nvm/nvm.sh
-nvm install 14.19.0 && nvm use 14.19.0
-export NODE_OPTIONS=--openssl-legacy-provider
-
+# kafka 를 docker를 통하여 실행
 cd infra
 docker-compose up
+
+# kafka 유틸리티가 포함된 위치에 접속하기 위하여 docker 를 통하여 shell 에 진입
+cd infra
+docker-compose exec -it kafka /bin/bash
