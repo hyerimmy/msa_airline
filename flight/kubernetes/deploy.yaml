@@ -25,3 +25,10 @@ spec:
                 configMapKeyRef:
                     name: config-flight
                     key: FLIGHT_LOG_LEVEL
+          volumeMounts:
+            - mountPath: "/mnt/data"
+              name: volume
+      volumes:
+        - name: volume
+          persistentVolumeClaim:
+            claimName: promotional-text
