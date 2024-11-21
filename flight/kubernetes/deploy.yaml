@@ -19,3 +19,9 @@ spec:
           image: user16.azurecr.io/flight:latest
           ports:
             - containerPort: 8080
+          env:
+            - name: FLIGHT_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                    name: config-flight
+                    key: FLIGHT_LOG_LEVEL
