@@ -71,7 +71,7 @@ pipeline {
                 }
             }
         }
-
+ 
         stage('CleanUp Images') {
             steps {
                 script {
