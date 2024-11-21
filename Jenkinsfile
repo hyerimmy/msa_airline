@@ -17,6 +17,12 @@ pipeline {
     }
  
     stages {
+        stage('Clone Repository') {
+            steps {
+                checkout scm
+            }
+        }
+        
         stage('Change Root Folder') {
             steps {
                 script {
@@ -24,12 +30,6 @@ pipeline {
                     cd flight
                     """
                 }
-            }
-        }
-        
-        stage('Clone Repository') {
-            steps {
-                checkout scm
             }
         }
         
