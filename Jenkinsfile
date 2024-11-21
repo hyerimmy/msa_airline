@@ -17,7 +17,7 @@ pipeline {
     }
  
     stages {
-        stage('Go To Project Folder') {
+        stage('Change Root Folder') {
             steps {
                 script {
                     sh """
