@@ -42,8 +42,12 @@ spring:
 
 logging:
   level:
-    org.hibernate.type: trace
-    org.springframework.cloud: debug
+    root: ${FLIGHT_LOG_LEVEL}
+    org:
+      hibernate:
+        SQL: ${FLIGHT_LOG_LEVEL}
+      springframework:
+        cloud: ${FLIGHT_LOG_LEVEL}
 
 
 server:
@@ -81,4 +85,11 @@ spring:
           destination: airline
           contentType: application/json
 
-
+logging:
+  level:
+    root: ${FLIGHT_LOG_LEVEL}
+    org:
+      hibernate:
+        SQL: ${FLIGHT_LOG_LEVEL}
+      springframework:
+        cloud: ${FLIGHT_LOG_LEVEL}
