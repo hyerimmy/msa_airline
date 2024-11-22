@@ -468,23 +468,88 @@ http :8082/reservations
    ![image](https://github.com/user-attachments/assets/3c3b53b4-826d-439a-aea4-b354a00c6f89)
 
 
-### 2. 컨테이너로부터 환경 분리 `ConfigMap`
+### 3. 컨테이너로부터 환경 분리 `ConfigMap`
+> 컨테이너로부터 환경변수를 분리하여 쿠버네티스에 ConfigMap으로 저장한다.
+
+#### 시나리오
+- flight 서비스의 DB정보, log level을 ConfigMap으로 저장하고 활용한다.
+
+#### 작업내용
+1. YAML 기반의 ConfigMap을 생성하고 배포한다.
+    ```bash
+    kubectl apply -f - <<EOF
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: config-flight
+      namespace: default
+    data:
+      FLIGHT_DB_URL: jdbc:mysql://mysql:3306/connectdb1?serverTimezone=Asia/Seoul&useSSL=false
+      FLIGHT_DB_USER: myuser
+      FLIGHT_LOG_LEVEL: DEBUG
+    EOF
+    ```
+
+2. 생성된 ConfigMap 객체를 확인한다.
+    ```bash
+    kubectl get configmap
+    kubectl get configmap config-flight -o yaml
+    ```
+    ![image](https://github.com/user-attachments/assets/972680e7-cf8b-4f97-b8a6-acd057656664)
+
+3. 주문서비스의 Logging 레벨을 Configmap의 ORDER_DEBUG_INFO 참조하도록 설정한다.
+    ```bash
+    logging:
+      level:
+        root: ${FLIGHT_LOG_LEVEL}
+        org:
+          hibernate:
+            SQL: ${FLIGHT_LOG_LEVEL}
+          springframework:
+            cloud: ${FLIGHT_LOG_LEVEL}
+    ```
+    ![image](https://github.com/user-attachments/assets/7595b9a4-0370-4912-a408-bccc1e4eb749)
+
+4. flight서비스의 deploy.yaml에 아래 환경변수 추가한다.
+    ```yaml
+    env:
+      - name: FLIGHT_LOG_LEVEL
+        valueFrom:
+          configMapKeyRef:
+              name: config-flight
+              key: FLIGHT_LOG_LEVEL
+    ```
+    ![image](https://github.com/user-attachments/assets/82c21718-bf7a-4aa8-8e34-7eff9bb8b787)
+
+#### 작업결과
+1. flight 서비스 Kubernetes에 배포 후, 컨테이너 Log를 통해 ConfigMap에 설정한 DEBUG 로그레벨이 적용되었음을 확인한다.
+    ```bash
+    kubectl logs -l app=flight
+    ```
+    ![image](https://github.com/user-attachments/assets/b3b2c915-e2ab-47b5-8149-aa54c2d89447)
+
+2. env 조회 명령어를 통해 Configmap에서 각 Container로 환경정보가 알맞게 전달되었음을 확인한다.
+    - 배포시 전달된 ORDER_LOG_LEVEL 정보가 주문 컨테이너 OS에 설정되었음을 알 수 있다.
+    ```bash
+    kubectl exec pod/flight-78d456dfd8-qbcj8 -- env
+    ```
+    ![image](https://github.com/user-attachments/assets/790aef6e-59b5-483f-b6af-25ad8855bac8)
+
+### 4. 클라우드 스토리지 활용 PVC
+#### 시나리오
+- 항공사의 이벤트 문구를 ConfigMap으로 저장하여 쿠버네티스에서 관리한다.
 #### 작업내용
 #### 작업결과
 
-### 3. 클라우드 스토리지 활용 PVC
+### 5. 셀프힐링/무정지배포 `Liveness/Rediness Probe`
 #### 작업내용
 #### 작업결과
 
-### 4. 셀프힐링/무정지배포 `Liveness/Rediness Probe`
+### 6. 서비스 메쉬 응용 `Mesh`
 #### 작업내용
 #### 작업결과
 
-### 5. 서비스 메쉬 응용 `Mesh`
-#### 작업내용
-#### 작업결과
-
-### 6. 통합 모니터링 `Loggeration/Monitoring`
+### 7. 통합 모니터링 `Loggeration/Monitoring`
 #### 작업내용
 #### 작업결과
 
