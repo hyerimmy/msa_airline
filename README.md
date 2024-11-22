@@ -291,12 +291,203 @@ http :8082/reservations
     ![image](https://github.com/user-attachments/assets/365a62cb-5d50-487e-a20e-62d7e4b9b6d8)
 
 ## 🤵🏻‍♂️ [Ops/PaaS] 운영
-### 1. 클라우드 배포 `HPA`
+### 1. 클라우드 배포 `Container`
+> Azure VM(가상머신) 상에서 Jenkins를 설치한 다음, 대상 서비스를 도커라이징하고 ACR(Azure Container Registry)에 푸쉬한 다음 AKS에 배포하는 전 과정을 Jenkins 파이프라인으로 구성해 본다.
+#### 작업내용
+1. Azure 리소스 생성
+   ![image](https://github.com/user-attachments/assets/0a357212-fbe5-4c8b-b901-937895044f32)
+
+2. Azure ACR, AKS SSO 로그인
+    ```bash
+    # az login (SSO)
+    az login --use-device-code
+    
+    # Kubernetes login (SSO)
+    az aks get-credentials --resource-group user16-rsrcgrp --name user16-aks
+    
+    # Azure AKS와 ACR 바인딩
+    az aks update -n user16-aks -g user16-rsrcgrp --attach-acr user16
+    ```
+
+3. Jenkins에 Azure, Git 접근 크레덴셜 등록
+   ![image](https://github.com/user-attachments/assets/019cd782-a748-41d6-8f13-5b7acf4c2336)
+
+4. CI/CD 파이프라인 작성
+   - Jenkinsfile
+     ```
+     pipeline {
+        agent any
+    
+        environment {
+            SERVICES = 'gateway,dashboard,flight,payment,reservation'
+            REGISTRY = 'user16.azurecr.io'
+            IMAGE_NAME = 'airline'
+            AKS_CLUSTER = 'user16-aks'
+            RESOURCE_GROUP = 'user16-rsrcgrp'
+            AKS_NAMESPACE = 'default'
+            AZURE_CREDENTIALS_ID = 'Azure-Cred'
+            TENANT_ID = '29d166ad-94ec-45cb-9f65-561c038e1c7a' // Service Principal 등록 후 생성된 ID
+            GIT_USER_NAME = 'hyerimmy'
+            GIT_USER_EMAIL = 'heyrim2010@naver.com'
+            GITHUB_CREDENTIALS_ID = 'Github-Cred'
+            GITHUB_REPO = 'https://github.com/hyerimmy/msa_airline.git'
+            GITHUB_BRANCH = 'main'
+        }
+     
+        stages {
+            stage('Clone Repository') {
+                steps {
+                    checkout scm
+                }
+            }
+    
+            stage('Build and Deploy Services') {
+                steps {
+                    script {
+                        def services = SERVICES.tokenize(',') // Use tokenize to split the string into a list
+                        for (int i = 0; i < services.size(); i++) {
+                            def service = services[i] // Define service as a def to ensure serialization
+                            dir(service) {
+                                stage("Maven Build - ${service}") {
+                                    withMaven(maven: 'Maven') {
+                                        sh 'mvn package -DskipTests'
+                                    }
+                                }
+    
+                                stage("Docker Build - ${service}") {
+                                    def image = docker.build("${REGISTRY}/${service}:v${env.BUILD_NUMBER}")
+                                }
+    
+                                stage('Azure Login') {
+                                    withCredentials([usernamePassword(credentialsId: env.AZURE_CREDENTIALS_ID, usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
+                                        sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant ${TENANT_ID}'
+                                    }
+                                }
+    
+                                stage("Push to ACR - ${service}") {
+                                    sh "az acr login --name ${REGISTRY.split('\\.')[0]}"
+                                    sh "docker push ${REGISTRY}/${service}:v${env.BUILD_NUMBER}"
+                                }
+    
+                                stage("Deploy to AKS - ${service}") {
+                                    
+                                    sh "az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${AKS_CLUSTER}"
+    
+                                    sh 'pwd'
+                                    
+                                    sh """
+                                    sed 's/latest/v${env.BUILD_ID}/g' kubernetes/deploy.yaml > output.yaml
+                                    cat output.yaml
+                                    kubectl apply -f output.yaml
+                                    kubectl apply -f kubernetes/service.yaml
+                                    rm output.yaml
+                                    """
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+     
+            stage('CleanUp Images') {
+                steps {
+                    script {
+                        def services = SERVICES.tokenize(',') 
+                        for (int i = 0; i < services.size(); i++) {
+                            def service = services[i] 
+                            sh "docker rmi ${REGISTRY}/${service}:v${env.BUILD_NUMBER}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+     ```
+   - 각 마이크로 서비스의 deploy.yaml
+   
+#### 작업결과
+1. 커밋하니 자동으로 CI/CD 파이프라인이 동작한다.
+    ![image](https://github.com/user-attachments/assets/7bff10e5-efeb-486d-aa95-c4e7ee3b285d)
+
+2. 파이프라인은 모두 정상적으로 완료되었음을 확인할 수 있다.
+   ![image](https://github.com/user-attachments/assets/20eeeaa9-ad5b-4212-95d7-e6f6218aa200)
+   ![image](https://github.com/user-attachments/assets/8e5f955c-5e48-450b-baf6-c7bcb2fc8b0d)
+   ![image](https://github.com/user-attachments/assets/c20da300-8e08-4628-a6a3-8d16e73651d0)
+
+3. Azure portal에서도 ACR, AKS에서 이미지가 올라가고 배포가 되었음을 확인할 수 있다.
+   ![image](https://github.com/user-attachments/assets/0539b6c9-f6fb-4e6e-8102-9a5553ba6718)
+   ![image](https://github.com/user-attachments/assets/b030ce38-7233-4c29-aecd-4f16b0982676)
+
+### 2. 컨테이너 자동 확장 `HPA`
+> 요청이 많이 들어올때 Auto Scale-Out 설정을 통하여 서비스를 동적으로 확장한다.
+
+#### 시나리오
+항공권 예약 요청이 갑자기 많아질 경우, 동적으로 서비스에 스케일아웃을 적용시켜 요청을 처리하도록 한다.
+
+#### 작업내용
+1. reservation서비스의 deploy.yaml을 아래와 같이 CPU 요청에 대한 값을 추가 작성 후 배포한다.
+    ```yaml
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: reservation
+      labels:
+        app: reservation
+      template:
+        ...
+        spec:
+          containers:
+            - name: reservation
+              image: user16.azurecr.io/reservation:latest
+              ports:
+                - containerPort: 8080
+              resources: #cpu
+                requests:
+                  cpu: "200m"
+    ```
+2. 오토 스케일링 설정명령어 호출한다.
+    ```bash
+    # cpu-percent=50 : Pod 들의 요청 대비 평균 CPU 사용율(YAML Spec.에서 요청량이 200 milli-cores일때, 모든 Pod의 평균 CPU 사용율이 100 milli-cores(50%)를 넘게되면 HPA 발생)
+    kubectl autoscale deployment reservation --cpu-percent=50 --min=1 --max=3
+    ```
+    ![image](https://github.com/user-attachments/assets/99b0cc43-18dc-49a1-9cc7-d0a2149b7d96)
+
+#### 작업결과
+1. 1번 터미널을 열어서 seige 명령으로 부하를 주어서 Pod 가 늘어나도록 한다.
+    ```bash
+    kubectl exec -it siege -- /bin/bash
+    siege -c20 -t40S -v http://reservation:8080/reservations
+    exit
+    ```
+    ![image](https://github.com/user-attachments/assets/120eeb94-a10e-415c-9f69-e56ee636ad96)
+
+2. 2번 터미널을 열어 kubectl get po -w 명령을 사용하면, pod 가 생성되는 것을 확인할 수 있다.
+   ![image](https://github.com/user-attachments/assets/c05d63eb-e969-4a51-b2ed-2d4fa4b13dd4)
+
+3. `kubectl get hpa` 명령어를 통해 CPU 값이 늘어난 것을 확인 한다.
+   ![image](https://github.com/user-attachments/assets/3c3b53b4-826d-439a-aea4-b354a00c6f89)
+
+
 ### 2. 컨테이너로부터 환경 분리 `ConfigMap`
+#### 작업내용
+#### 작업결과
+
 ### 3. 클라우드 스토리지 활용 PVC
+#### 작업내용
+#### 작업결과
+
 ### 4. 셀프힐링/무정지배포 `Liveness/Rediness Probe`
+#### 작업내용
+#### 작업결과
+
 ### 5. 서비스 메쉬 응용 `Mesh`
+#### 작업내용
+#### 작업결과
+
 ### 6. 통합 모니터링 `Loggeration/Monitoring`
+#### 작업내용
+#### 작업결과
+
 
 
 <!-- 
