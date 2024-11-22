@@ -535,11 +535,63 @@ http :8082/reservations
     ```
     ![image](https://github.com/user-attachments/assets/790aef6e-59b5-483f-b6af-25ad8855bac8)
 
-### 4. 클라우드 스토리지 활용 PVC
+### 4. 클라우드 스토리지 활용 `PVC`
 #### 시나리오
 - 항공사의 이벤트 문구를 ConfigMap으로 저장하여 쿠버네티스에서 관리한다.
+
 #### 작업내용
+1. 아래 YAML로 'promotional-text'라는 PVC(Persistence Volume Claim)를 생성한다.
+    ```bash
+    kubectl apply -f - <<EOF
+    apiVersion: v1
+    **kind: PersistentVolumeClaim**
+    metadata:
+      name: promotional-text
+    spec:
+      accessModes:
+      - ReadWriteMany
+      storageClassName: azurefile
+      resources:
+        requests:
+          storage: 1Gi
+    EOF
+    ```
+
+2. pvc가 제대로 생성되었는지 확인한다.
+    ```bash
+    kubectl get pvc
+    ```
+    ![image](https://github.com/user-attachments/assets/13a7ca99-c6e8-4f62-ab4d-288b314e57a1)
+
+3. flight 마이크로서비스에 볼륨 설정 추가
+    ```bash
+    volumeMounts:
+      - mountPath: "/mnt/data"
+        name: volume
+        volumes:
+        - name: volume
+          persistentVolumeClaim:
+            claimName: promotional-text 
+    ```
+    ![image](https://github.com/user-attachments/assets/310c4932-e795-475d-bdc0-2a7f4ceb42e8)
+
 #### 작업결과
+1. flight 컨테이너에 접속하여 summer-event.txt를 작성한다.
+    ```bash
+    kubectl exec -it pod/flight-54b56676f4-cr28w -- /bin/sh
+    cd /mnt/data
+    echo "[SUMMER EVENT] 50% DISCOUNT!" > summer-event.txt
+    ```
+    ![image](https://github.com/user-attachments/assets/9b2f1505-092e-4687-aee6-2e1f1433f26d)
+
+2. flight 서비스를 2개로 Scale Out하고, 확장된 주문 서비스에서 summer-event.txt를 조회하여 이전 pod에서 작성한 문구가 조회됨을 확인한다.
+    ```bash
+    kubectl scale deploy flight --replicas=2
+    kubectl exec -it pod/flight-54b56676f4-fzvkk -- /bin/sh
+    cd /mnt/data
+    cat summer-event.txt
+    ```
+    ![image](https://github.com/user-attachments/assets/c20d75be-ac36-4468-8229-3ac21631cc69)
 
 ### 5. 셀프힐링/무정지배포 `Liveness/Rediness Probe`
 #### 작업내용
