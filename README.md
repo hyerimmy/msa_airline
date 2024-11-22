@@ -92,6 +92,138 @@ http :8082/reservations
 
 
 ### 2. 단일 진입점 `Gateway`
+> 마이크로서비스 4개(dashboard, flight, payment, reservation)를 API 게이트웨이를 활용해 엔드포인트를 단일화한다. 
+
+#### [2-1. local환경] 작업 내용
+1. Docker실행
+    - http 클라이언트를 설치하고 kafka를 Local에 컨테이너 기반으로 실행한다.
+    
+    ```bash
+    brew install httpie
+    cd infra
+    docker-compose up
+    ```
+    
+2. 각 마이크로서비스 실행
+    ```bash
+    cd dashboard
+    mvn spring-boot:run
+    
+    cd flight
+    mvn spring-boot:run
+    
+    cd payment
+    mvn spring-boot:run
+    
+    cd reservation
+    mvn spring-boot:run
+    
+    cd gateway
+    mvn spring-boot:run
+    ```
+    
+3. API 게이트웨이 역할을 하는 ‘gateway’ 서비스의 application.yml에 아래와 같이 설정해준다.
+    - gateway : 8088
+        - reservation : 8082
+        - flight : 8083
+        - payment : 8084
+        - dashboard : 8085
+    
+    ```yaml
+    server:
+      port: 8088
+    
+    ---
+    
+    spring:
+      profiles: default
+      cloud:
+        gateway:
+    #<<< API Gateway / Routes
+          routes:
+            - id: reservation
+              uri: http://localhost:8082
+              predicates:
+                - Path=/reservations/**, 
+            - id: flight
+              uri: http://localhost:8083
+              predicates:
+                - Path=/flights/**, 
+            - id: payment
+              uri: http://localhost:8084
+              predicates:
+                - Path=/payments/**, 
+            - id: dashboard
+              uri: http://localhost:8085
+              predicates:
+                - Path=, 
+            - id: frontend
+              uri: http://localhost:8080
+              predicates:
+                - Path=/**
+    #>>> API Gateway / Routes
+          globalcors:
+            corsConfigurations:
+              '[/**]':
+                allowedOrigins:
+                  - "*"
+                allowedMethods:
+                  - "*"
+                allowedHeaders:
+                  - "*"
+                allowCredentials: true
+    ...
+    
+    ```
+    
+#### [2-1. local환경] 작업 결과
+아래와 같이 마이크로서비스 포트 8083 뿐 아니라 게이트웨이로 설정한 포트 8088로 접근해도 진입된다.
+![image](https://github.com/user-attachments/assets/7e25763d-50db-4e1e-97ae-539c57a0c2ab)
+![image](https://github.com/user-attachments/assets/cb21c102-5046-4e14-8e58-ca6b5518f9f2)
+
+아래와 같이 post 요청도 게이트웨이 포트를 통해 진입해 처리 가능하다.
+![image](https://github.com/user-attachments/assets/b75460b6-63b8-4a92-be65-90b2f8ae2b70)
+![image](https://github.com/user-attachments/assets/5c83f7b8-16b4-49e1-8a76-5917700a56b0)
+
+---
+
+#### [2-2. cloud환경] 작업 내용
+
+1. 게이트웨이 application.yaml에 아래와 같이 라우팅룰 설정 후 배포한다.
+    ```bash
+    spring:
+      profiles: default
+      cloud:
+        gateway:
+    #<<< API Gateway / Routes
+          routes:
+            - id: reservation
+              uri: http://localhost:8082
+              predicates:
+                - Path=/reservations/**, 
+            - id: flight
+              uri: http://localhost:8083
+              predicates:
+                - Path=/flights/**, 
+            - id: payment
+              uri: http://localhost:8084
+              predicates:
+                - Path=/payments/**, 
+            - id: dashboard
+              uri: http://localhost:8085
+              predicates:
+                - Path=, 
+    ```
+
+2. 게이트웨이 파드의 external IP를 조회한다.
+    ![image](https://github.com/user-attachments/assets/965cf5f6-35b4-4b3f-be5e-76f453c181f9)
+
+
+#### [2-2. cloud환경] 작업 결과
+모든 마이크로서비스는 게이트웨이 ip를  통해 접근된다.
+![image](https://github.com/user-attachments/assets/c6dd1145-3169-4788-bad4-4dd0005beac3)
+
+
 ### 3. 분산 데이터 프로젝션 `CQRS`
 
 ## 🤵🏻‍♂️ [Ops/PaaS] 운영
