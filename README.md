@@ -593,9 +593,60 @@ http :8082/reservations
     ```
     ![image](https://github.com/user-attachments/assets/c20d75be-ac36-4468-8229-3ac21631cc69)
 
-### 5. 셀프힐링/무정지배포 `Liveness/Rediness Probe`
+### 5. 무정지배포 `Rediness Probe`
+> 컨테이너의 상태를 관리하는 readinessProbe 설정을 하여 무정지 배포를 적용한다.
 #### 작업내용
+1. flight서비스의 delpoy.yaml 내에 readiness 설정을 주입한다.
+    ```bash
+    readinessProbe:
+      httpGet:
+        path: '/flights'
+        port: 8080
+      initialDelaySeconds: 10
+      timeoutSeconds: 2
+      periodSeconds: 5
+      failureThreshold: 10
+    ```
+    ![image](https://github.com/user-attachments/assets/96957976-6fe1-4671-b560-ca749193c829)
+
 #### 작업결과
+[readinessProbe 적용 전]
+    1. seege를 동작시킨 상태에서 배포를 진행한다.
+        ```bash
+        # siege를 사용해 충분한 시간만큼 부하를 준다.
+        kubectl exec -it siege -- /bin/bash
+        siege -c1 -t60S -v http://flight:8080/flights --delay=1S
+        
+        # 배포를 반영한다.
+        kubectl apply -f deployment.yaml
+        ```
+    2. siege 로그를 통해 배포시 정지시간이 발생한것을 확인할 수 있다.
+        ```bash
+        Lifting the server siege...
+        Transactions:		         65 hits
+        Availability:		        58.056 %
+        ```
+        ![image](https://github.com/user-attachments/assets/1e917df4-468b-46aa-a5ea-040d400dc2be)
+
+
+[readinessProbe 적용 후]
+    1. seege를 동작시킨 상태에서 배포를 진행한다.
+        ```bash
+        # siege를 사용해 충분한 시간만큼 부하를 준다.
+        kubectl exec -it siege -- /bin/bash
+        siege -c1 -t60S -v http://flight:8080/flights --delay=1S
+        
+        # 배포를 반영한다.
+        kubectl apply -f deployment.yaml
+        ```
+    2. siege 로그를 통해 배포시 무정지로 배포된 것을 확인할 수 있다.
+        ```bash
+        Lifting the server siege...
+        Transactions:		         108 hits
+        Availability:		      100.00 %
+        ```
+        ![image](https://github.com/user-attachments/assets/eeb3c4f1-1337-42eb-a8e6-f4e890d9acbb)
+
 
 ### 6. 서비스 메쉬 응용 `Mesh`
 #### 작업내용
