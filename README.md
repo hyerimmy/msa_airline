@@ -28,41 +28,40 @@
 #### 작업 내용
 
 1. [Event Storming] “SeatSoldOut” Event 설정
-
-- Long 타입의 reservationId를 추가한다.
-- “Trigger By LifeCycle” 설정에서 Post Update로 변경한다.
-- “SeatSoldOut” Event와 “update Status” Policy를 pub/sub으로 연결한다.
+    - Long 타입의 reservationId를 추가한다.
+    - “Trigger By LifeCycle” 설정에서 Post Update로 변경한다.
+    - “SeatSoldOut” Event와 “update Status” Policy를 pub/sub으로 연결한다.
 
 2. [Dev] 예약 시 잔여좌석수 감소 로직
-`flight/src/main/java/airline/domain/Flight.java`
-```java
-public static void decreaseRemainingSeats(
-    ReservationPlaced reservationPlaced
-) {
-    repository().findById(reservationPlaced.getFlightId()).ifPresent(flight->{
-        if(flight.getRemainingSeatsCount() >= reservationPlaced.getSeatQty()){
-            flight.setRemainingSeatsCount(flight.getRemainingSeatsCount() - reservationPlaced.getSeatQty()); 
-            repository().save(flight);
-            
-            RemainingSeatsDecreased remainingSeatDecreased = new RemainingSeatsDecreased(flight);
-            remainingSeatDecreased.publishAfterCommit();
-        }else{
-            SeatsSoldOut seatsSoldOut = new SeatsSoldOut(flight);
-            seatsSoldOut.setReservationId(reservationPlaced.getId());
-            seatsSoldOut.publishAfterCommit();
-        }
-    });
-}
-```
+    `flight/src/main/java/airline/domain/Flight.java`
+    ```java
+    public static void decreaseRemainingSeats(
+        ReservationPlaced reservationPlaced
+    ) {
+        repository().findById(reservationPlaced.getFlightId()).ifPresent(flight->{
+            if(flight.getRemainingSeatsCount() >= reservationPlaced.getSeatQty()){
+                flight.setRemainingSeatsCount(flight.getRemainingSeatsCount() - reservationPlaced.getSeatQty()); 
+                repository().save(flight);
+                
+                RemainingSeatsDecreased remainingSeatDecreased = new RemainingSeatsDecreased(flight);
+                remainingSeatDecreased.publishAfterCommit();
+            }else{
+                SeatsSoldOut seatsSoldOut = new SeatsSoldOut(flight);
+                seatsSoldOut.setReservationId(reservationPlaced.getId());
+                seatsSoldOut.publishAfterCommit();
+            }
+        });
+    }
+    ```
 3. [Dev] 잔여좌석 솔드아웃 시 예약 취소 처리 로직
-```java
-public static void updateStatus(SeatsSoldOut seatsSoldOut) {
-    repository().findById(seatsSoldOut.getReservationId()).ifPresent(reservation->{
-        reservation.setStatus("CANCELED");
-        repository().save(reservation);
-    });
-}
-```
+    ```java
+    public static void updateStatus(SeatsSoldOut seatsSoldOut) {
+        repository().findById(seatsSoldOut.getReservationId()).ifPresent(reservation->{
+            reservation.setStatus("CANCELED");
+            repository().save(reservation);
+        });
+    }
+    ```
 
 #### 작업 결과
 - `reservation` localhost:8082
