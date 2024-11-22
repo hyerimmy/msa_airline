@@ -13,7 +13,6 @@ spec:
     metadata:
       labels:
         app: reservation
-        sidecar.istio.io/inject: "true"
     spec:
       containers:
         - name: reservation

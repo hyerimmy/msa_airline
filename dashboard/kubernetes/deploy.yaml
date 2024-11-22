@@ -13,7 +13,6 @@ spec:
     metadata:
       labels:
         app: dashboard
-        sidecar.istio.io/inject: "true"
     spec:
       containers:
         - name: dashboard
