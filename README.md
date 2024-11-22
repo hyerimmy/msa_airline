@@ -225,6 +225,70 @@ http :8082/reservations
 
 
 ### 3. 분산 데이터 프로젝션 `CQRS`
+#### 시나리오
+고객이 예약을 할 경우, 예약 횟수와 가장 최근 예약한 일자를 Dashboard서비스의 ReadModel에 업데이트해준다.
+
+#### 작업 내용
+1. [Event Storming] ReadModel ‘CustomerInfo’ 설정
+![image](https://github.com/user-attachments/assets/40c2349d-ba2b-40bd-aea5-6e941a10f5f5)
+![image](https://github.com/user-attachments/assets/4f8b8d28-0b5e-4dd5-b332-c20e6e45d1d3)
+
+
+2. [Dev] CustomerInfo CQRS 로직 작성
+    `dashboard/src/main/java/airline/infra/CustomerInfoViewHandler.java`
+    ```java
+    @StreamListener(KafkaProcessor.INPUT)
+    public void whenReservationPlaced_then_CREATE_1(
+        @Payload ReservationPlaced reservationPlaced
+    ) {
+        try {
+            if (!reservationPlaced.validate()) return;
+            
+            // view 객체 조회
+            Optional<CustomerInfo> customerInfoOptional = customerInfoRepository.findById(
+                reservationPlaced.getCustomerId()
+            );
+    
+            // 기존 customerId의 대시보드 데이터가 존재하지 않는다면 생성, 존재한다면 수정
+            if (customerInfoOptional.isPresent()) {  // 수정
+                CustomerInfo customerInfo = customerInfoOptional.get();
+                customerInfo.setFlightCount(customerInfo.getFlightCount()+1L);
+                customerInfo.setRecentReserveDate(reservationPlaced.getReserveDate());
+                customerInfoRepository.save(customerInfo);
+            } else { // 생성
+                CustomerInfo customerInfo = new CustomerInfo();
+                customerInfo.setCustomerId(reservationPlaced.getCustomerId());
+                customerInfo.setFlightCount(1L);
+                customerInfo.setRecentReserveDate(reservationPlaced.getReserveDate());
+                customerInfoRepository.save(customerInfo);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    ```
+
+#### 작업 결과
+1. 3차례 예약 진행
+    ```bash
+    # 1번항공권의 잔여좌석수 5개로 초기셋팅
+    http :8083/flights remainingSeatsCount=5 flightCode="ACE890" takeoffDate="2025-12-25" cost=200000
+    
+    # 2024-11-11 / 1번고객 / 1번항공권 / 3자리 예약
+    http :8082/reservations customerId=1 flightId=1 seatQty=3 reserveDate="2024-11-11" status="SUCCEED"
+    
+    # 2024-11-23 / 2번고객 / 1번항공권 / 1자리 예약
+    http :8082/reservations customerId=2 flightId=1 seatQty=1 reserveDate="2024-11-23" status="SUCCEED"
+    
+    # 2024-12-25 / 2번고객 / 1번항공권 / 1자리 예약
+    http :8082/reservations customerId=2 flightId=1 seatQty=1 reserveDate="2024-12-25" status="SUCCEED"
+    ```
+
+2. Dashboard의 customerInfo에 통계값 입력된 것 확인
+    ```bash
+    http :8085/customerInfos
+    ```
+    ![image](https://github.com/user-attachments/assets/365a62cb-5d50-487e-a20e-62d7e4b9b6d8)
 
 ## 🤵🏻‍♂️ [Ops/PaaS] 운영
 ### 1. 클라우드 배포 `HPA`
