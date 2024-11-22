@@ -159,7 +159,6 @@ http :8082/reservations
         - flight : 8083
         - payment : 8084
         - dashboard : 8085
-    
     ```yaml
     server:
       port: 8088
@@ -344,6 +343,7 @@ http :8082/reservations
    ![image](https://github.com/user-attachments/assets/019cd782-a748-41d6-8f13-5b7acf4c2336)
 
 4. CI/CD 파이프라인 작성
+   - 각 마이크로 서비스의 deploy.yaml에 ACR 정보 입력
    - Jenkinsfile
      ```
      pipeline {
@@ -433,9 +433,9 @@ http :8082/reservations
             }
         }
     }
-     ```
-   - 각 마이크로 서비스의 deploy.yaml
-   
+   ```
+
+
 #### 작업결과
 1. 커밋하니 자동으로 CI/CD 파이프라인이 동작한다.
     ![image](https://github.com/user-attachments/assets/7bff10e5-efeb-486d-aa95-c4e7ee3b285d)
