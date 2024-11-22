@@ -207,13 +207,15 @@ http :8082/reservations
     ```
     
 #### [2-1. local환경] 작업 결과
-아래와 같이 마이크로서비스 포트 8083 뿐 아니라 게이트웨이로 설정한 포트 8088로 접근해도 진입된다.
-![image](https://github.com/user-attachments/assets/7e25763d-50db-4e1e-97ae-539c57a0c2ab)
-![image](https://github.com/user-attachments/assets/cb21c102-5046-4e14-8e58-ca6b5518f9f2)
+1. 게이트웨이로 마이크로 서비스 GET 접근
+   - 아래와 같이 마이크로서비스 포트 8083 뿐 아니라 게이트웨이로 설정한 포트 8088로 접근해도 진입된다.
+    ![image](https://github.com/user-attachments/assets/7e25763d-50db-4e1e-97ae-539c57a0c2ab)
+    ![image](https://github.com/user-attachments/assets/cb21c102-5046-4e14-8e58-ca6b5518f9f2)
 
-아래와 같이 post 요청도 게이트웨이 포트를 통해 진입해 처리 가능하다.
-![image](https://github.com/user-attachments/assets/b75460b6-63b8-4a92-be65-90b2f8ae2b70)
-![image](https://github.com/user-attachments/assets/5c83f7b8-16b4-49e1-8a76-5917700a56b0)
+2. 게이트웨이로 마이크로 서비스 POST 접근
+   - 아래와 같이 post 요청도 게이트웨이 포트를 통해 진입해 처리 가능하다.
+    ![image](https://github.com/user-attachments/assets/b75460b6-63b8-4a92-be65-90b2f8ae2b70)
+    ![image](https://github.com/user-attachments/assets/5c83f7b8-16b4-49e1-8a76-5917700a56b0)
 
 ---
 
@@ -347,94 +349,93 @@ http :8082/reservations
    - Jenkinsfile
      ```
      pipeline {
-        agent any
-    
-        environment {
-            SERVICES = 'gateway,dashboard,flight,payment,reservation'
-            REGISTRY = 'user16.azurecr.io'
-            IMAGE_NAME = 'airline'
-            AKS_CLUSTER = 'user16-aks'
-            RESOURCE_GROUP = 'user16-rsrcgrp'
-            AKS_NAMESPACE = 'default'
-            AZURE_CREDENTIALS_ID = 'Azure-Cred'
-            TENANT_ID = '29d166ad-94ec-45cb-9f65-561c038e1c7a' // Service Principal 등록 후 생성된 ID
-            GIT_USER_NAME = 'hyerimmy'
-            GIT_USER_EMAIL = 'heyrim2010@naver.com'
-            GITHUB_CREDENTIALS_ID = 'Github-Cred'
-            GITHUB_REPO = 'https://github.com/hyerimmy/msa_airline.git'
-            GITHUB_BRANCH = 'main'
-        }
-     
-        stages {
-            stage('Clone Repository') {
-                steps {
-                    checkout scm
-                }
-            }
-    
-            stage('Build and Deploy Services') {
-                steps {
-                    script {
-                        def services = SERVICES.tokenize(',') // Use tokenize to split the string into a list
-                        for (int i = 0; i < services.size(); i++) {
-                            def service = services[i] // Define service as a def to ensure serialization
-                            dir(service) {
-                                stage("Maven Build - ${service}") {
-                                    withMaven(maven: 'Maven') {
-                                        sh 'mvn package -DskipTests'
-                                    }
-                                }
-    
-                                stage("Docker Build - ${service}") {
-                                    def image = docker.build("${REGISTRY}/${service}:v${env.BUILD_NUMBER}")
-                                }
-    
-                                stage('Azure Login') {
-                                    withCredentials([usernamePassword(credentialsId: env.AZURE_CREDENTIALS_ID, usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
-                                        sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant ${TENANT_ID}'
-                                    }
-                                }
-    
-                                stage("Push to ACR - ${service}") {
-                                    sh "az acr login --name ${REGISTRY.split('\\.')[0]}"
-                                    sh "docker push ${REGISTRY}/${service}:v${env.BUILD_NUMBER}"
-                                }
-    
-                                stage("Deploy to AKS - ${service}") {
-                                    
-                                    sh "az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${AKS_CLUSTER}"
-    
-                                    sh 'pwd'
-                                    
-                                    sh """
-                                    sed 's/latest/v${env.BUILD_ID}/g' kubernetes/deploy.yaml > output.yaml
-                                    cat output.yaml
-                                    kubectl apply -f output.yaml
-                                    kubectl apply -f kubernetes/service.yaml
-                                    rm output.yaml
-                                    """
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-     
-            stage('CleanUp Images') {
-                steps {
-                    script {
-                        def services = SERVICES.tokenize(',') 
-                        for (int i = 0; i < services.size(); i++) {
-                            def service = services[i] 
-                            sh "docker rmi ${REGISTRY}/${service}:v${env.BUILD_NUMBER}"
-                        }
-                    }
-                }
-            }
-        }
-    }
-   ```
-
+          agent any
+      
+          environment {
+              SERVICES = 'gateway,dashboard,flight,payment,reservation'
+              REGISTRY = 'user16.azurecr.io'
+              IMAGE_NAME = 'airline'
+              AKS_CLUSTER = 'user16-aks'
+              RESOURCE_GROUP = 'user16-rsrcgrp'
+              AKS_NAMESPACE = 'default'
+              AZURE_CREDENTIALS_ID = 'Azure-Cred'
+              TENANT_ID = '29d166ad-94ec-45cb-9f65-561c038e1c7a' // Service Principal 등록 후 생성된 ID
+              GIT_USER_NAME = 'hyerimmy'
+              GIT_USER_EMAIL = 'heyrim2010@naver.com'
+              GITHUB_CREDENTIALS_ID = 'Github-Cred'
+              GITHUB_REPO = 'https://github.com/hyerimmy/msa_airline.git'
+              GITHUB_BRANCH = 'main'
+          }
+       
+          stages {
+              stage('Clone Repository') {
+                  steps {
+                      checkout scm
+                  }
+              }
+      
+              stage('Build and Deploy Services') {
+                  steps {
+                      script {
+                          def services = SERVICES.tokenize(',') // Use tokenize to split the string into a list
+                          for (int i = 0; i < services.size(); i++) {
+                              def service = services[i] // Define service as a def to ensure serialization
+                              dir(service) {
+                                  stage("Maven Build - ${service}") {
+                                      withMaven(maven: 'Maven') {
+                                          sh 'mvn package -DskipTests'
+                                      }
+                                  }
+      
+                                  stage("Docker Build - ${service}") {
+                                      def image = docker.build("${REGISTRY}/${service}:v${env.BUILD_NUMBER}")
+                                  }
+      
+                                  stage('Azure Login') {
+                                      withCredentials([usernamePassword(credentialsId: env.AZURE_CREDENTIALS_ID, usernameVariable: 'AZURE_CLIENT_ID', passwordVariable: 'AZURE_CLIENT_SECRET')]) {
+                                          sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant ${TENANT_ID}'
+                                      }
+                                  }
+      
+                                  stage("Push to ACR - ${service}") {
+                                      sh "az acr login --name ${REGISTRY.split('\\.')[0]}"
+                                      sh "docker push ${REGISTRY}/${service}:v${env.BUILD_NUMBER}"
+                                  }
+      
+                                  stage("Deploy to AKS - ${service}") {
+                                      
+                                      sh "az aks get-credentials --resource-group ${RESOURCE_GROUP} --name ${AKS_CLUSTER}"
+      
+                                      sh 'pwd'
+                                      
+                                      sh """
+                                      sed 's/latest/v${env.BUILD_ID}/g' kubernetes/deploy.yaml > output.yaml
+                                      cat output.yaml
+                                      kubectl apply -f output.yaml
+                                      kubectl apply -f kubernetes/service.yaml
+                                      rm output.yaml
+                                      """
+                                  }
+                              }
+                          }
+                      }
+                  }
+              }
+       
+              stage('CleanUp Images') {
+                  steps {
+                      script {
+                          def services = SERVICES.tokenize(',') 
+                          for (int i = 0; i < services.size(); i++) {
+                              def service = services[i] 
+                              sh "docker rmi ${REGISTRY}/${service}:v${env.BUILD_NUMBER}"
+                          }
+                      }
+                  }
+              }
+          }
+      }
+     ```
 
 #### 작업결과
 1. 커밋하니 자동으로 CI/CD 파이프라인이 동작한다.
@@ -626,6 +627,7 @@ http :8082/reservations
 
 ### 5. 무정지배포 `Rediness Probe`
 > 컨테이너의 상태를 관리하는 readinessProbe 설정을 하여 무정지 배포를 적용한다.
+
 #### 작업내용
 1. flight서비스의 delpoy.yaml 내에 readiness 설정을 주입한다.
     ```bash
@@ -641,42 +643,42 @@ http :8082/reservations
     ![image](https://github.com/user-attachments/assets/96957976-6fe1-4671-b560-ca749193c829)
 
 #### 작업결과
-[readinessProbe 적용 전]
-    1. seege를 동작시킨 상태에서 배포를 진행한다.
-        ```bash
-        # siege를 사용해 충분한 시간만큼 부하를 준다.
-        kubectl exec -it siege -- /bin/bash
-        siege -c1 -t60S -v http://flight:8080/flights --delay=1S
-        
-        # 배포를 반영한다.
-        kubectl apply -f deployment.yaml
-        ```
-    2. siege 로그를 통해 배포시 정지시간이 발생한것을 확인할 수 있다.
-        ```bash
-        Lifting the server siege...
-        Transactions:		         65 hits
-        Availability:		        58.056 %
-        ```
-        ![image](https://github.com/user-attachments/assets/1e917df4-468b-46aa-a5ea-040d400dc2be)
+**[readinessProbe 적용 전]**
+  1. seege를 동작시킨 상태에서 배포를 진행한다.
+      ```bash
+      # siege를 사용해 충분한 시간만큼 부하를 준다.
+      kubectl exec -it siege -- /bin/bash
+      siege -c1 -t60S -v http://flight:8080/flights --delay=1S
+      
+      # 배포를 반영한다.
+      kubectl apply -f deployment.yaml
+      ```
+  2. siege 로그를 통해 배포시 정지시간이 발생한것을 확인할 수 있다.
+      ```bash
+      Lifting the server siege...
+      Transactions:		         65 hits
+      Availability:		        58.056 %
+      ```
+     ![image](https://github.com/user-attachments/assets/1e917df4-468b-46aa-a5ea-040d400dc2be)
 
 
-[readinessProbe 적용 후]
-    1. seege를 동작시킨 상태에서 배포를 진행한다.
-        ```bash
-        # siege를 사용해 충분한 시간만큼 부하를 준다.
-        kubectl exec -it siege -- /bin/bash
-        siege -c1 -t60S -v http://flight:8080/flights --delay=1S
-        
-        # 배포를 반영한다.
-        kubectl apply -f deployment.yaml
-        ```
-    2. siege 로그를 통해 배포시 무정지로 배포된 것을 확인할 수 있다.
-        ```bash
-        Lifting the server siege...
-        Transactions:		         108 hits
-        Availability:		      100.00 %
-        ```
-        ![image](https://github.com/user-attachments/assets/eeb3c4f1-1337-42eb-a8e6-f4e890d9acbb)
+**[readinessProbe 적용 후]**
+  1. seege를 동작시킨 상태에서 배포를 진행한다.
+      ```bash
+      # siege를 사용해 충분한 시간만큼 부하를 준다.
+      kubectl exec -it siege -- /bin/bash
+      siege -c1 -t60S -v http://flight:8080/flights --delay=1S
+      
+      # 배포를 반영한다.
+      kubectl apply -f deployment.yaml
+      ```
+  2. siege 로그를 통해 배포시 무정지로 배포된 것을 확인할 수 있다.
+      ```bash
+      Lifting the server siege...
+      Transactions:		         108 hits
+      Availability:		      100.00 %
+      ```
+      ![image](https://github.com/user-attachments/assets/eeb3c4f1-1337-42eb-a8e6-f4e890d9acbb)
 
 
 ### 6. 서비스 메쉬 응용 `Mesh`
