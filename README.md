@@ -5,17 +5,93 @@
 ## 👩🏻‍🎨 [IaaS] 아키텍처
 ### 1. 클라우드 아키텍처 구성
 #### MSA 아키텍처 구성도
+<img width="976" alt="image" src="https://github.com/user-attachments/assets/40f25dec-7de3-48ae-8af5-029c753d995d">
+
 
 ## 👷🏻 [Biz] 모델링
 ### 1. 이벤트 스토밍
 #### 시나리오
 #### 이벤트 스토밍 결과 
-![image](https://github.com/user-attachments/assets/2c244fbb-44b1-4cd6-b7f5-7378304c1774)
+<img width="1247" alt="image" src="https://github.com/user-attachments/assets/fc1ebc5f-b798-47e8-8049-dfd711163fe7">
 
 #### 시나리오 검증
 
 ## 🧑🏻‍💻 [Dev] MSA 개발
 ### 1. 분산 트랜잭션 `Saga` & 보상처리 `Compensation`
+> 고객이 항공권을 예약하였지만 남은 좌석이 없어 SeatsSoldOut 이벤트가 Pub되었을 때, 이를 Sub하고 있는 UpdateStatus 이벤트를 발행하여 고객의 예약요청(reservationId) 상태값(status)을 'CANCELED'로 변경한다.
+
+#### 시나리오
+1. 비행기 잔여석보다 더 많은 예약을 발행하는 ReservationPlaced 이벤트가 발행된다. (비즈니스 예외 케이스)
+2. flight 서비스에서 잔여석보다 더 많은 예약이 불가능함에 따라 SeatSoldOut 이벤트를 pub한다.
+3. SeatSoldOut 이벤트를 sub하고 있는 reservation 서비스에서는 원예약(reservationId)의 상태값(status)을 수정한다.
+
+#### 작업 내용
+
+1. [Event Storming] “SeatSoldOut” Event 설정
+
+- Long 타입의 reservationId를 추가한다.
+- “Trigger By LifeCycle” 설정에서 Post Update로 변경한다.
+- “SeatSoldOut” Event와 “update Status” Policy를 pub/sub으로 연결한다.
+
+2. [Dev] 예약 시 잔여좌석수 감소 로직
+`flight/src/main/java/airline/domain/Flight.java`
+```java
+public static void decreaseRemainingSeats(
+    ReservationPlaced reservationPlaced
+) {
+    repository().findById(reservationPlaced.getFlightId()).ifPresent(flight->{
+        if(flight.getRemainingSeatsCount() >= reservationPlaced.getSeatQty()){
+            flight.setRemainingSeatsCount(flight.getRemainingSeatsCount() - reservationPlaced.getSeatQty()); 
+            repository().save(flight);
+            
+            RemainingSeatsDecreased remainingSeatDecreased = new RemainingSeatsDecreased(flight);
+            remainingSeatDecreased.publishAfterCommit();
+        }else{
+            SeatsSoldOut seatsSoldOut = new SeatsSoldOut(flight);
+            seatsSoldOut.setReservationId(reservationPlaced.getId());
+            seatsSoldOut.publishAfterCommit();
+        }
+    });
+}
+```
+3. [Dev] 잔여좌석 솔드아웃 시 예약 취소 처리 로직
+```java
+public static void updateStatus(SeatsSoldOut seatsSoldOut) {
+    repository().findById(seatsSoldOut.getReservationId()).ifPresent(reservation->{
+        reservation.setStatus("CANCELED");
+        repository().save(reservation);
+    });
+}
+```
+
+#### 작업 결과
+- `reservation` localhost:8082
+- `flight` localhost:8083
+```bash
+# 1번항공권의 잔여좌석수 5개로 초기셋팅
+http :8083/flights remainingSeatsCount=5 flightCode="ACE890" takeoffDate="2025-12-25" cost=200000
+
+# 1번고객이 1번항공권 3자리 예약 (SUCCEED)
+http :8082/reservations customerId=1 flightId=1 seatQty=3 reserveDate="2024-11-21" status="SUCCEED"
+
+# 2번고객이 1번항공권 3자리 예약 (CANCELED)
+http :8082/reservations customerId=2 flightId=1 seatQty=3 reserveDate="2024-11-22" status="SUCCEED"
+```
+
+```bash
+# 항공권 잔여좌석수 확인
+http :8083/flights
+```
+![image](https://github.com/user-attachments/assets/eab827a6-9a18-49a8-ae6d-8bd0bbfa2ef5)
+
+```bash
+# 예약 내역 확인
+http :8082/reservations
+```
+![image](https://github.com/user-attachments/assets/3d3ccdb7-c7e6-47b8-91de-652b33e3df54)
+
+
+
 ### 2. 단일 진입점 `Gateway`
 ### 3. 분산 데이터 프로젝션 `CQRS`
 
