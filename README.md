@@ -763,7 +763,8 @@ http :8082/reservations
         helm repo add grafana https://grafana.github.io/helm-charts
         helm repo update
         ```
-            - loki-stack 설치 스크립트 다운로드
+        <img width="567" alt="image1" src="https://github.com/user-attachments/assets/37cee98b-c57b-4e8e-b37c-ba64ee7d13c7">
+    - loki-stack 설치 스크립트 다운로드
         ```bash
         helm show values grafana/loki-stack > ./loki-stack-values.yaml
         ```
@@ -795,9 +796,8 @@ http :8082/reservations
     kubectl get svc -n logging
     ```
 2. 발급된 External-IP로 브라우저에서 접속한다.
-    ![Uploading image.png…]()
 3. 실행시간에 따른 4가지 마이크로 서비스 로그가 로그리게이션되어 나타난다.
-    ![Uploading image.png…]()
+    <img width="567" alt="image2" src="https://github.com/user-attachments/assets/eb185634-87dc-420d-b341-33b80e883572">
 
 
 
