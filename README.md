@@ -754,8 +754,50 @@ http :8082/reservations
 
 
 ### 7. 통합 모니터링 `Loggeration/Monitoring`
+> Grafana를 사용하여 마이크로 서비스의 로그들을 통합하여 모니터링해 본다.
+
 #### 작업내용
+1. Install Grafana with Helm
+    - Helm에 Grafana 저장소 추가
+        ```bash
+        helm repo add grafana https://grafana.github.io/helm-charts
+        helm repo update
+        ```
+            - loki-stack 설치 스크립트 다운로드
+        ```bash
+        helm show values grafana/loki-stack > ./loki-stack-values.yaml
+        ```
+    - loki-stack-values.yaml을 편집하여 아래처럼 PLG 스텍만('true’로 수정) 선택한다.
+        ```bash
+        test-pod: enabled: false // 2번째 line 수정
+        loki: enabled: true
+        promtail: enabled: true
+        fluent-bit: enabled: false
+        grafana: enabled: true // 37번째 line 수정
+        prometheus: enabled: false
+        filebeat: enabled: false 
+        logstash: enabled: false
+        ```
+    - Helm으로 PLG 스텍 설치   
+        ```bash
+        kubectl create namespace logging
+        helm install loki-stack grafana/loki-stack --values ./loki-stack-values.yaml -n logging
+        ```
+2. 설치된 Pod 목록을 확인한다.
+    ```bash
+    kubectl get pod -n logging
+    ```
+    
 #### 작업결과
+1. Grafana External-IP를 생성한다.
+   ```bash
+    kubectl patch svc loki-stack-grafana -n logging -p '{"spec": {"type": "LoadBalancer"}}'
+    kubectl get svc -n logging
+    ```
+2. 발급된 External-IP로 브라우저에서 접속한다.
+    ![Uploading image.png…]()
+3. 실행시간에 따른 4가지 마이크로 서비스 로그가 로그리게이션되어 나타난다.
+    ![Uploading image.png…]()
 
 
 
