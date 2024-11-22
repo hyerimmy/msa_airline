@@ -8,48 +8,18 @@
       - [MSA 아키텍처 구성도](#msa-아키텍처-구성도)
   - [👷🏻 [Biz] 모델링](#-biz-모델링)
     - [1. 이벤트 스토밍](#1-이벤트-스토밍)
-      - [시나리오](#시나리오)
-      - [이벤트 스토밍 결과](#이벤트-스토밍-결과)
-      - [시나리오 검증](#시나리오-검증)
   - [🧑🏻‍💻 [Dev] MSA 개발](#-dev-msa-개발)
     - [1. 분산 트랜잭션 `Saga` & 보상처리 `Compensation`](#1-분산-트랜잭션-saga--보상처리-compensation)
-      - [시나리오](#시나리오-1)
-      - [작업 내용](#작업-내용)
-      - [작업 결과](#작업-결과)
     - [2. 단일 진입점 `Gateway`](#2-단일-진입점-gateway)
-      - [[2-1. local환경] 작업 내용](#2-1-local환경-작업-내용)
-      - [[2-1. local환경] 작업 결과](#2-1-local환경-작업-결과)
-      - [[2-2. cloud환경] 작업 내용](#2-2-cloud환경-작업-내용)
-      - [[2-2. cloud환경] 작업 결과](#2-2-cloud환경-작업-결과)
     - [3. 분산 데이터 프로젝션 `CQRS`](#3-분산-데이터-프로젝션-cqrs)
-      - [시나리오](#시나리오-2)
-      - [작업 내용](#작업-내용-1)
-      - [작업 결과](#작업-결과-1)
   - [🤵🏻‍♂️ [Ops/PaaS] 운영](#️-opspaas-운영)
     - [1. 클라우드 배포 `Container`](#1-클라우드-배포-container)
-      - [작업내용](#작업내용)
-      - [작업결과](#작업결과)
     - [2. 컨테이너 자동 확장 `HPA`](#2-컨테이너-자동-확장-hpa)
-      - [시나리오](#시나리오-3)
-      - [작업내용](#작업내용-1)
-      - [작업결과](#작업결과-1)
     - [3. 컨테이너로부터 환경 분리 `ConfigMap`](#3-컨테이너로부터-환경-분리-configmap)
-      - [시나리오](#시나리오-4)
-      - [작업내용](#작업내용-2)
-      - [작업결과](#작업결과-2)
     - [4. 클라우드 스토리지 활용 `PVC`](#4-클라우드-스토리지-활용-pvc)
-      - [시나리오](#시나리오-5)
-      - [작업내용](#작업내용-3)
-      - [작업결과](#작업결과-3)
     - [5. 무정지배포 `Rediness Probe`](#5-무정지배포-rediness-probe)
-      - [작업내용](#작업내용-4)
-      - [작업결과](#작업결과-4)
     - [6. 서비스 메쉬 응용 `Mesh`](#6-서비스-메쉬-응용-mesh)
-      - [작업내용](#작업내용-5)
-      - [작업결과](#작업결과-5)
     - [7. 통합 모니터링 `Loggeration/Monitoring`](#7-통합-모니터링-loggerationmonitoring)
-      - [작업내용](#작업내용-6)
-      - [작업결과](#작업결과-6)
 
 <!-- /code_chunk_output -->
 
@@ -63,7 +33,7 @@
 
 ## 👷🏻 [Biz] 모델링
 ### 1. 이벤트 스토밍
-#### 시나리오
+#### 💬시나리오
 1. 고객은 원하는 매수만큼 항공권 예약을 할 수 있고, 잔여좌석이 있다면 결제를 진행한다.
 2. 고객이 예약하였는데 잔여좌석이 부족하다면 예약 취소처리한다.
 3. 고객은 예약을 취소할 수 있다.
@@ -73,18 +43,20 @@
 #### 이벤트 스토밍 결과 
 <img width="1247" alt="image" src="https://github.com/user-attachments/assets/fc1ebc5f-b798-47e8-8049-dfd711163fe7">
 
-#### 시나리오 검증
+#### 💬 시나리오 검증
+![image](https://github.com/user-attachments/assets/16be4e47-3da2-4889-8cc6-be0d318beb1e)
+
 
 ## 🧑🏻‍💻 [Dev] MSA 개발
 ### 1. 분산 트랜잭션 `Saga` & 보상처리 `Compensation`
 > 고객이 항공권을 예약하였지만 남은 좌석이 없어 SeatsSoldOut 이벤트가 Pub되었을 때, 이를 Sub하고 있는 UpdateStatus 이벤트를 발행하여 고객의 예약요청(reservationId) 상태값(status)을 'CANCELED'로 변경한다.
 
-#### 시나리오
+#### 💬시나리오
 1. 비행기 잔여석보다 더 많은 예약을 발행하는 ReservationPlaced 이벤트가 발행된다. (비즈니스 예외 케이스)
 2. flight 서비스에서 잔여석보다 더 많은 예약이 불가능함에 따라 SeatSoldOut 이벤트를 pub한다.
 3. SeatSoldOut 이벤트를 sub하고 있는 reservation 서비스에서는 원예약(reservationId)의 상태값(status)을 수정한다.
 
-#### 작업 내용
+#### 🚧 작업 내용
 
 1. [Event Storming] “SeatSoldOut” Event 설정
     - Long 타입의 reservationId를 추가한다.
@@ -122,7 +94,7 @@
     }
     ```
 
-#### 작업 결과
+#### 🏁 작업 결과
 - `reservation` localhost:8082
 - `flight` localhost:8083
 ```bash
@@ -284,10 +256,10 @@ http :8082/reservations
 
 
 ### 3. 분산 데이터 프로젝션 `CQRS`
-#### 시나리오
+#### 💬시나리오
 고객이 예약을 할 경우, 예약 횟수와 가장 최근 예약한 일자를 Dashboard서비스의 ReadModel에 업데이트해준다.
 
-#### 작업 내용
+#### 🚧 작업 내용
 1. [Event Storming] ReadModel ‘CustomerInfo’ 설정
 ![image](https://github.com/user-attachments/assets/40c2349d-ba2b-40bd-aea5-6e941a10f5f5)
 ![image](https://github.com/user-attachments/assets/4f8b8d28-0b5e-4dd5-b332-c20e6e45d1d3)
@@ -327,7 +299,7 @@ http :8082/reservations
     }
     ```
 
-#### 작업 결과
+#### 🏁 작업 결과
 1. 3차례 예약 진행
     ```bash
     # 1번항공권의 잔여좌석수 5개로 초기셋팅
@@ -480,7 +452,7 @@ http :8082/reservations
 ### 2. 컨테이너 자동 확장 `HPA`
 > 요청이 많이 들어올때 Auto Scale-Out 설정을 통하여 서비스를 동적으로 확장한다.
 
-#### 시나리오
+#### 💬시나리오
 항공권 예약 요청이 갑자기 많아질 경우, 동적으로 서비스에 스케일아웃을 적용시켜 요청을 처리하도록 한다.
 
 #### 작업내용
@@ -530,7 +502,7 @@ http :8082/reservations
 ### 3. 컨테이너로부터 환경 분리 `ConfigMap`
 > 컨테이너로부터 환경변수를 분리하여 쿠버네티스에 ConfigMap으로 저장한다.
 
-#### 시나리오
+#### 💬시나리오
 - flight 서비스의 DB정보, log level을 ConfigMap으로 저장하고 활용한다.
 
 #### 작업내용
@@ -595,7 +567,7 @@ http :8082/reservations
     ![image](https://github.com/user-attachments/assets/790aef6e-59b5-483f-b6af-25ad8855bac8)
 
 ### 4. 클라우드 스토리지 활용 `PVC`
-#### 시나리오
+#### 💬시나리오
 - 항공사의 이벤트 문구를 ConfigMap으로 저장하여 쿠버네티스에서 관리한다.
 
 #### 작업내용
