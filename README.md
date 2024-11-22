@@ -649,8 +649,109 @@ http :8082/reservations
 
 
 ### 6. 서비스 메쉬 응용 `Mesh`
+> Istio Service Mesh를 내 클러스터에 설치하고 Sidecar 인젝션을 진행한다.
+
 #### 작업내용
+1. Istio 설치
+    ```bash
+    # 기본적인 구성인 `demo` 를 기반으로 설치
+    istioctl install --set profile=demo --set hub=gcr.io/istio-release
+    ```
+    ![image](https://github.com/user-attachments/assets/5a396052-98a3-4dde-9db5-60d133115587)
+
+
+2. Istio add-on Dashboard 설치
+    ```bash
+    mv samples/addons/loki.yaml samples/addons/loki.yaml.old
+    curl -o samples/addons/loki.yaml https://raw.githubusercontent.com/msa-school/Lab-required-Materials/main/Ops/loki.yaml
+    kubectl apply -f samples/addons
+    ```
+
+3. 인그레이스 게이트웨이 설치
+    ```yaml
+    # Helm 3.x 설치(권장)
+    curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 > get_helm.sh
+    chmod 700 get_helm.sh
+    ./get_helm.sh
+    ```
+    ```yaml
+    # 인그레이스 게이트웨이를 위한 Helm repo 설정
+    helm repo add stable https://charts.helm.sh/stable
+    helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+    helm repo update
+    kubectl create namespace ingress-basic
+    ```
+    ```bash
+    # Nginx Ingress Controller 설치 (Azure)
+    helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-basic --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz
+    ```
+
+4. Istio Dashboard를 위한 라우팅 룰(Ingress) 설정
+    ```yaml
+    kubectl apply -f - <<EOF
+    apiVersion: networking.k8s.io/v1
+    kind: "Ingress"
+    metadata: 
+      name: "airline-ingress"
+      namespace: istio-system
+      annotations: 
+        nginx.ingress.kubernetes.io/ssl-redirect: "false"
+        ingressclass.kubernetes.io/is-default-class: "true"
+    spec: 
+      ingressClassName: nginx
+      rules: 
+        - host: ""
+          http: 
+            paths: 
+              - path: /kiali
+                pathType: Prefix
+                backend: 
+                  service:
+                    name: kiali
+                    port:
+                      number: 20001
+              - path: /grafana
+                pathType: Prefix
+                backend: 
+                  service:
+                    name: grafana
+                    port:
+                      number: 3000
+              - path: /prometheus
+                pathType: Prefix
+                backend: 
+                  service:
+                    name: prometheus
+                    port:
+                      number: 9090
+              - path: /loki
+                pathType: Prefix
+                backend: 
+                  service:
+                    name: loki
+                    port:
+                      number: 3100
+    EOF
+    ```
+
+5. Sidecar Injection
+   istio-injection을 위한 airline이라는 네임스페이스를 생성하고, 서비스를 배포한다.
+    ```yaml
+    kubectl create namespace airline
+    kubectl label namespace airline istio-injection=enabled
+    kubectl apply -f deploy.yaml -n airline
+    ```
+
 #### 작업결과
+1. istio설치 후 실행중인 파드를 확인한다.
+    ```bash
+    kubectl get svc -n istio-system
+    ```
+    ![image](https://github.com/user-attachments/assets/80ba4927-0b42-4c56-a892-b6953f2bab1d)
+
+2. 마이크로서비스가 정상적으로 배포되었음을 확인한다.
+    ![image](https://github.com/user-attachments/assets/6aa1d267-c490-4154-962c-454c928fa4db)
+
 
 ### 7. 통합 모니터링 `Loggeration/Monitoring`
 #### 작업내용
